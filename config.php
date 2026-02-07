@@ -1,7 +1,4 @@
 <?php
-// config.php — проектный конфиг (не шаблон).
-// Единственный источник настроек — .env. Никаких дефолтов.
-
 $envPath = __DIR__ . '/.env';
 if (!is_file($envPath)) {
     die('Config error: .env not found');
@@ -47,7 +44,6 @@ $dbUser    = env_required('DB_USER');
 $dbPass    = env_required('DB_PASS');     // may be empty string, but must exist
 $dbCharset = env_required('DB_CHARSET');
 
-// project constants
 $DEFAULT_LOGO = env_required('DEFAULT_LOGO');
 
 // ---- CONNECT ----

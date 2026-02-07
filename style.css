@@ -11,7 +11,7 @@
     100% { background: transparent; }
 }
 
-/* ===== Tiny online/offline indicator ===== */
+/* ===== online indicator ===== */
 .net-indicator{
     display: inline-flex;
     align-items: center;

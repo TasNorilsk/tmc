@@ -106,8 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const res = await fetch('api.php', { method: 'POST', body: formData, cache: 'no-store' });
-            const json = await res.json().catch(() => ({ error: 'bad_json' }));
-            return json;
+            return await res.json().catch(() => ({error: 'bad_json'}));
         } catch (e) {
             return { error: 'offline' };
         } finally {
@@ -153,11 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('offline', updateNetIndicator);
 
     forceRefreshBtn.addEventListener('click', async () => {
-        // minimal, аккуратное принудительное обновление
         await refreshAll(true);
     });
 
-    // ===== Suggestions (подсказки) =====
+    // ===== Suggestions =====
     function hideHints() {
         hintName.classList.add('d-none');
         hintTth1.classList.add('d-none');
@@ -586,13 +584,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const upd = await fetchData('edit', { id: d.id, qty: newQty, tth2: newTth2 });
             if (upd?.error) return alert('Ошибка: ' + upd.error);
 
-            // IMPORTANT: reset form after successful update (п.1)
+            // reset form after successful update
             resetAddForm();
 
-            // reset autosort after add/update (п.7)
+            // reset autosort after add/update
             autoSortActive = false;
 
-            // reset search (п.6)
+            // reset search
             resetSearch();
 
             // message (п.8)
@@ -644,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // remember last used category/manufacturer for add mode (п.5)
+        // remember last used category/manufacturer for add mode
         localStorage.setItem('lastCatId', String(catId));
         localStorage.setItem('lastManuId', String(manufId));
 
@@ -657,16 +655,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             catModal.hide();
 
-            // reset autosort after add (п.7)
+            // reset autosort after add
             autoSortActive = false;
 
-            // reset search (п.6)
+            // reset search
             resetSearch();
 
             // message (п.8)
             setOpMessage(`Запись "${currentItemData.name}" добавлена.`);
 
-            // reset form + default qty=1 (п.3)
+            // reset form + default qty=1
             resetAddForm();
 
             await refreshAll();
@@ -688,10 +686,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             catModal.hide();
 
-            // reset search (п.6)
+            // reset search
             resetSearch();
 
-            // message (п.8)
+            // message
             const beforeCat = before?.category_name || '—';
             const beforeManu = before?.manufacturer_name || '—';
             const afterCat = categoriesCache.find(c => String(c.id) === String(catId))?.name || beforeCat;
@@ -699,7 +697,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setOpMessage(`Запись "${before?.name || ''}" изменена: категория "${beforeCat}" → "${afterCat}", производитель "${beforeManu}" → "${afterManu}".`);
 
             await refreshAll();
-            return;
         }
     });
 
@@ -716,10 +713,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetchData('delete', { id });
             if (res?.error) return alert('Ошибка: ' + res.error);
 
-            // reset search (п.6)
+            // reset search
             resetSearch();
 
-            // message (п.8)
+            // message
             setOpMessage(`Запись "${before?.name || '—'}" удалена.`);
 
             await refreshAll();
@@ -751,7 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
             input.type = field === 'qty' ? 'number' : 'text';
             if (field === 'qty') {
                 input.min = '0';
-                input.inputMode = 'numeric';     // (п.4) numeric keyboard on phones
+                input.inputMode = 'numeric';     //numeric keyboard on phones
                 input.pattern = '[0-9]*';
             }
             input.value = original === '—' ? '' : original;
@@ -787,7 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetchData('edit', data);
             if (res?.error) return alert('Ошибка: ' + res.error);
 
-            // message (п.8) — показываем изменения
+            // message
             const field = Object.keys(data).find(k => k !== 'id');
             if (field && before) {
                 const from = (before[field] ?? '—');
@@ -797,7 +794,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setOpMessage(`Запись обновлена.`);
             }
 
-            // reset search (п.6)
+            // reset search
             resetSearch();
 
             row.classList.add('success');
@@ -817,7 +814,6 @@ document.addEventListener('DOMContentLoaded', () => {
             row.querySelector('.save')?.remove();
             row.querySelector('.cancel')?.remove();
             editingCells = [];
-            return;
         }
     });
 
@@ -1130,7 +1126,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setOpMessage(`Производитель удалён.`);
             await refreshAll();
             await loadRefs();
-            return;
         }
     });
 
@@ -1141,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsCache = Array.isArray(items) ? items : [];
         renderItemsGrouped(itemsCache);
 
-        // desktop focus search by default (п.7)
+        // desktop focus search by default
         if (isDesktop()) search.focus();
     }
 
@@ -1160,7 +1155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadOpMessage();
     refreshAll();
 
-    // default: desktop focus search (п.7)
+    // default: desktop focus search
     if (isDesktop()) search.focus();
 
     if ('serviceWorker' in navigator) {

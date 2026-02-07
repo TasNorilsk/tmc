@@ -20,7 +20,6 @@ require __DIR__ . '/config.php';
         <div class="d-flex align-items-center gap-2">
             <h1 class="h4 m-0">Учет ТМЦ</h1>
 
-            <!-- tiny online/offline indicator -->
             <div class="net-indicator" id="netIndicator" title="Статус сети">
                 <span class="net-dot" id="netDot"></span>
                 <span class="net-text d-none d-sm-inline" id="netText">online</span>
@@ -31,7 +30,6 @@ require __DIR__ . '/config.php';
             <button type="button" class="btn btn-outline-secondary btn-sm" id="forceRefresh" title="Обновить данные">
                 ⟳
             </button>
-            <div class="small text-secondary d-none d-sm-block">локально • без перезагрузок</div>
         </div>
     </div>
 
@@ -224,7 +222,7 @@ require __DIR__ . '/config.php';
 
 </div>
 
-<!-- Modal: Category + Manufacturer -->
+<!-- Category + Manufacturer -->
 <div class="modal fade" id="catModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
