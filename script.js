@@ -1,19 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_LOGO = 'logos/noname.png';
 
-    // Items add form
-    const addForm = document.getElementById('addForm');
+    // Items add
+    const openAddBtn = document.getElementById('openAddBtn');
     const itemsList = document.getElementById('itemsList');
     const search = document.getElementById('search');
 
-    const nameEl = document.getElementById('name');
-    const tth1El = document.getElementById('tth1');
-    const tth2El = document.getElementById('tth2');
-    const qtyEl = document.getElementById('qty');
+    // Add modal fields
+    const addFieldsWrap = document.getElementById('addFields');
+    const nameEl = document.getElementById('nameModal');
+    const tth1El = document.getElementById('tth1Modal');
+    const tth2El = document.getElementById('tth2Modal');
+    const qtyEl = document.getElementById('qtyModal');
 
-    const hintName = document.getElementById('hintName');
-    const hintTth1 = document.getElementById('hintTth1');
-    const hintTth2 = document.getElementById('hintTth2');
+    const hintName = document.getElementById('hintNameModal');
+    const hintTth1 = document.getElementById('hintTth1Modal');
+    const hintTth2 = document.getElementById('hintTth2Modal');
 
     // Operation message
     const opMsg = document.getElementById('opMsg');
@@ -284,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tth2El.addEventListener('input', () => onFieldInput('tth2'));
 
     document.addEventListener('click', (e) => {
-        const inside = e.target.closest('.hint-list') || e.target.closest('#addForm');
+        const inside = e.target.closest('.hint-list') || e.target.closest('#catModal');
         if (!inside) hideHints();
     });
 
@@ -466,8 +468,14 @@ document.addEventListener('DOMContentLoaded', () => {
         modalMode = mode;
         editMetaItemId = itemId;
 
-        catModalTitle.textContent = mode === 'add'
-            ? 'Категория и производитель'
+        const isAdd = mode === 'add';
+        addFieldsWrap.classList.toggle('d-none', !isAdd);
+        nameEl.required = isAdd;
+        tth1El.required = isAdd;
+        qtyEl.required = isAdd;
+
+        catModalTitle.textContent = isAdd
+            ? 'Добавить ТМЦ'
             : 'Изменить категорию / производителя';
 
         const [cats, mans] = await Promise.all([
@@ -493,11 +501,13 @@ document.addEventListener('DOMContentLoaded', () => {
         removeLogoRequested = false;
 
         // preselect:
-        if (mode === 'add') {
+        if (isAdd) {
             const lastCat = localStorage.getItem('lastCatId') || '';
             const lastManu = localStorage.getItem('lastManuId') || '';
             catSelect.value = lastCat || '';
             manufSelect2.value = lastManu || '';
+
+            qtyEl.value = qtyEl.value || '1';
         } else {
             catSelect.value = categoryId ? String(categoryId) : '';
             manufSelect2.value = manufacturerId ? String(manufacturerId) : '';
@@ -544,65 +554,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ===== Add form submit =====
-    function resetAddForm() {
-        addForm.reset();
+    // ===== Add button =====
+    function resetAddModalFields() {
+        nameEl.value = '';
+        tth1El.value = '';
+        tth2El.value = '';
         qtyEl.value = '1';
         hideHints();
         autoSortActive = false;
     }
 
-    addForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        // autosort during input: normalize order name/tth1/tth2 by trimming
-        currentItemData = {
-            name: nameEl.value.trim(),
-            tth1: tth1El.value.trim(),
-            tth2: tth2El.value.trim(),
-            qty: qtyEl.value
-        };
-
-        const res = await fetchData('pre_add', currentItemData);
-        if (res?.error) return alert('Ошибка: ' + res.error);
-
-        // duplicates update flow
-        if (res.duplicates?.length > 0) {
-            const msg = res.duplicates
-                .map(d => `${d.name} (${d.tth1}, ${d.tth2 || '—'}) - кол-во ${d.qty}`)
-                .join('\n');
-
-            if (!confirm('Похожие записи:\n' + msg + '\nОбновить?')) return;
-
-            const d = res.duplicates[0];
-            const before = { qty: parseInt(d.qty, 10), tth2: d.tth2 || '' };
-
-            const newQty = before.qty + parseInt(currentItemData.qty, 10);
-            const newTth2 = (before.tth2 !== (currentItemData.tth2 || '')) ? currentItemData.tth2 : before.tth2;
-
-            const upd = await fetchData('edit', { id: d.id, qty: newQty, tth2: newTth2 });
-            if (upd?.error) return alert('Ошибка: ' + upd.error);
-
-            // reset form after successful update
-            resetAddForm();
-
-            // reset autosort after add/update
-            autoSortActive = false;
-
-            // reset search
-            resetSearch();
-
-            // message (п.8)
-            const changed = [];
-            if (before.qty !== newQty) changed.push(`кол-во ${before.qty} → ${newQty}`);
-            if ((before.tth2 || '') !== (newTth2 || '')) changed.push(`ТТХ2 "${before.tth2 || '—'}" → "${newTth2 || '—'}"`);
-            setOpMessage(`Запись "${d.name}" обновлена: ${changed.join(', ') || 'изменения применены'}.`);
-
-            await refreshAll();
-            return;
-        }
-
-        // open modal for category/manufacturer
+    openAddBtn.addEventListener('click', async () => {
+        resetAddModalFields();
         await openMetaModal({ mode: 'add' });
     });
 
@@ -646,26 +609,53 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('lastManuId', String(manufId));
 
         if (modalMode === 'add') {
-            currentItemData.category_id = catId;
-            currentItemData.manufacturer_id = manufId;
+            currentItemData = {
+                name: nameEl.value.trim(),
+                tth1: tth1El.value.trim(),
+                tth2: tth2El.value.trim(),
+                qty: qtyEl.value,
+                category_id: catId,
+                manufacturer_id: manufId
+            };
+
+            if (!currentItemData.name || !currentItemData.tth1) return alert('Заполните Название и ТТХ1');
+            if (currentItemData.qty === '' || Number.isNaN(Number(currentItemData.qty)) || Number(currentItemData.qty) < 0) {
+                return alert('Некорректное количество');
+            }
+
+            const dup = await fetchData('find_duplicate', currentItemData);
+            if (dup?.error) return alert('Ошибка: ' + dup.error);
+
+            if (dup.duplicates?.length > 0) {
+                const d = dup.duplicates[0];
+                const beforeQty = parseInt(d.qty, 10) || 0;
+                const addQty = parseInt(currentItemData.qty, 10) || 0;
+                const newQty = beforeQty + addQty;
+
+                const msg = dup.duplicates
+                    .map(x => `${x.name} (${x.tth1}, ${x.tth2 || '—'}) - кол-во ${x.qty}`)
+                    .join('\n');
+
+                if (!confirm('Найдено совпадение (полное):\n' + msg + `\nУвеличить количество на ${addQty}?`)) return;
+
+                const upd = await fetchData('edit', { id: d.id, qty: newQty });
+                if (upd?.error) return alert('Ошибка: ' + upd.error);
+
+                catModal.hide();
+                resetSearch();
+                resetAddModalFields();
+                setOpMessage(`Запись "${d.name}" обновлена: кол-во ${beforeQty} → ${newQty}.`);
+                await refreshAll();
+                return;
+            }
 
             const addRes = await fetchData('add', currentItemData);
             if (addRes?.error) return alert('Ошибка: ' + addRes.error);
 
             catModal.hide();
-
-            // reset autosort after add
-            autoSortActive = false;
-
-            // reset search
             resetSearch();
-
-            // message (п.8)
+            resetAddModalFields();
             setOpMessage(`Запись "${currentItemData.name}" добавлена.`);
-
-            // reset form + default qty=1
-            resetAddForm();
-
             await refreshAll();
             return;
         }

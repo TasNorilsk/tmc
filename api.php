@@ -18,7 +18,8 @@ function post($key, $default = null) {
     return isset($_POST[$key]) ? $_POST[$key] : $default;
 }
 
-function ensure_dir($dir) {
+function ensure_dir($dir): void
+{
     if (!is_dir($dir)) @mkdir($dir, 0777, true);
 }
 
@@ -28,14 +29,16 @@ function safe_int($v, $default = 0) {
     return (int)$v;
 }
 
-function safe_str($v, $maxLen = 255) {
+function safe_str($v, $maxLen = 255): string
+{
     $v = is_string($v) ? trim($v) : '';
     if ($v === '') return '';
     if (mb_strlen($v, 'UTF-8') > $maxLen) $v = mb_substr($v, 0, $maxLen, 'UTF-8');
     return $v;
 }
 
-function process_logo_upload($fileTmp, $destPath) {
+function process_logo_upload($fileTmp, $destPath): bool
+{
     $info = @getimagesize($fileTmp);
     if (!$info) return false;
 
@@ -132,6 +135,31 @@ if ($action === 'pre_add') {
     if ($res) while ($row = $res->fetch_assoc()) $manufacturers[] = $row;
 
     respond(['duplicates' => $duplicates, 'categories' => $categories, 'manufacturers' => $manufacturers]);
+}
+
+if ($action === 'find_duplicate') {
+    $name = safe_str(post('name', ''), 150);
+    $tth1 = safe_str(post('tth1', ''), 100);
+    $tth2 = safe_str(post('tth2', ''), 100);
+    $category_id = safe_int(post('category_id', 0), 0);
+    $manufacturer_id = safe_int(post('manufacturer_id', 0), 0);
+
+    if ($name === '' || $tth1 === '' || $category_id <= 0 || $manufacturer_id <= 0) {
+        respond(['error' => 'invalid'], 400);
+    }
+
+    $duplicates = [];
+    $stmt = $conn->prepare("SELECT id, name, tth1, tth2, qty FROM items WHERE name = ? AND tth1 = ? AND tth2 = ? AND category_id = ? AND manufacturer_id = ? ORDER BY id DESC");
+    if ($stmt) {
+        $stmt->bind_param("sssii", $name, $tth1, $tth2, $category_id, $manufacturer_id);
+        if ($stmt->execute()) {
+            $res = $stmt->get_result();
+            while ($row = $res->fetch_assoc()) $duplicates[] = $row;
+        }
+        $stmt->close();
+    }
+
+    respond(['duplicates' => $duplicates]);
 }
 
 if ($action === 'add') {

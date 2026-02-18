@@ -47,40 +47,9 @@ require __DIR__ . '/config.php';
 
     <!-- ITEMS TAB -->
     <div id="tab-items">
-        <form id="addForm" class="row g-2 g-sm-3 mb-2 position-relative">
-            <div class="col-12 col-sm-5 position-relative">
-                <input type="text" class="form-control" id="name" placeholder="Название" autocomplete="off" required>
-                <div class="hint-list d-none" id="hintName"></div>
-            </div>
-
-            <div class="col-6 col-sm-2 position-relative">
-                <input type="text" class="form-control" id="tth1" placeholder="ТТХ1" autocomplete="off" required>
-                <div class="hint-list d-none" id="hintTth1"></div>
-            </div>
-
-            <div class="col-6 col-sm-2 position-relative">
-                <input type="text" class="form-control" id="tth2" placeholder="ТТХ2" autocomplete="off">
-                <div class="hint-list d-none" id="hintTth2"></div>
-            </div>
-
-            <div class="col-6 col-sm-1">
-                <input
-                        type="number"
-                        class="form-control"
-                        id="qty"
-                        placeholder="Кол-во"
-                        min="0"
-                        value="1"
-                        inputmode="numeric"
-                        pattern="[0-9]*"
-                        required
-                >
-            </div>
-
-            <div class="col-6 col-sm-2">
-                <button type="submit" class="btn btn-primary w-100">Добавить</button>
-            </div>
-        </form>
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+            <button type="button" class="btn btn-primary" id="openAddBtn">Добавить</button>
+        </div>
 
         <!-- persistent last operation message -->
         <div class="op-msg d-none" id="opMsg">
@@ -222,7 +191,7 @@ require __DIR__ . '/config.php';
 
 </div>
 
-<!-- Category + Manufacturer -->
+<!-- Add / Edit meta -->
 <div class="modal fade" id="catModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -231,6 +200,42 @@ require __DIR__ . '/config.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
+                <!-- Add fields (visible only in add mode) -->
+                <div id="addFields" class="mb-3">
+                    <div class="row g-2 g-sm-3">
+                        <div class="col-12 col-sm-6 position-relative">
+                            <label class="form-label small text-secondary mb-1">Название</label>
+                            <input type="text" class="form-control" id="nameModal" placeholder="Название" autocomplete="off">
+                            <div class="hint-list d-none" id="hintNameModal"></div>
+                        </div>
+                        <div class="col-6 col-sm-2 position-relative">
+                            <label class="form-label small text-secondary mb-1">ТТХ1</label>
+                            <input type="text" class="form-control" id="tth1Modal" placeholder="ТТХ1" autocomplete="off">
+                            <div class="hint-list d-none" id="hintTth1Modal"></div>
+                        </div>
+                        <div class="col-6 col-sm-2 position-relative">
+                            <label class="form-label small text-secondary mb-1">ТТХ2</label>
+                            <input type="text" class="form-control" id="tth2Modal" placeholder="ТТХ2" autocomplete="off">
+                            <div class="hint-list d-none" id="hintTth2Modal"></div>
+                        </div>
+                        <div class="col-12 col-sm-2">
+                            <label class="form-label small text-secondary mb-1">Кол-во</label>
+                            <input
+                                    type="number"
+                                    class="form-control"
+                                    id="qtyModal"
+                                    placeholder="Кол-во"
+                                    min="0"
+                                    value="1"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                            >
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label small text-secondary">Категория</label>
                     <select class="form-select" id="catSelect" required>
