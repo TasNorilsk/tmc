@@ -187,8 +187,8 @@
     align-items: center;
 }
 .tmc-col--manu{
-    flex: 0 0 260px;
-    min-width: 200px;
+    flex: 0 0 90px;
+    min-width: 90px;
 }
 .tmc-manu{
     display: flex;

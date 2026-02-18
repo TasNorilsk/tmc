@@ -295,9 +295,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
       <div class="tmc-manu">
         <div class="manu-logo-wrap">
-          <img class="manu-logo" src="${logo}" alt="">
+          <img class="manu-logo" src="${logo}" alt="" title="${esc(name)}">
         </div>
-        <div class="tmc-manu-name text-truncate" title="${esc(name)}">${esc(name)}</div>
       </div>
     `;
     }
@@ -838,6 +837,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ===== Movements =====
+    // Move type labels for UI
+    const MOVE_TYPE_LABELS = {
+        install: 'Установлено',
+        transfer: 'Передано',
+        dispose: 'Утилизировано',
+        return: 'Возвращено'
+    };
+
+    function moveTypeLabel(code) {
+        return MOVE_TYPE_LABELS[code] || code || '—';
+    }
+
     function syncMoveTypeAvailability() {
         const opt = moveItem.selectedOptions?.[0];
         const available = opt ? parseInt(opt.dataset.qty, 10) : NaN;
@@ -861,11 +872,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const logo = m.logo_path ? esc(m.logo_path) : DEFAULT_LOGO;
         const name = m.manufacturer_name || '';
         return `
-      <div class="d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center">
         <div class="manu-logo-wrap">
-          <img class="manu-logo" src="${logo}" alt="">
+          <img class="manu-logo" src="${logo}" alt="" title="${esc(name)}">
         </div>
-        <div class="text-truncate d-none d-sm-block" title="${esc(name)}">${esc(name)}</div>
       </div>
     `;
     }
@@ -893,7 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="col-move-manu">${renderMoveManuCell(m)}</td>
         <td>${esc(m.item_name)} (${esc(m.item_tth1)})</td>
         <td class="text-end">${esc(m.qty)}</td>
-        <td>${esc(m.action_type)}</td>
+        <td>${esc(moveTypeLabel(m.action_type))}</td>
         <td>${esc(m.destination)}</td>
         <td class="text-secondary small">${esc(m.created_at)}</td>
       `;
@@ -930,7 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return alert('Ошибка: ' + res.error);
         }
 
-        setOpMessage(`Движение добавлено: ${data.action_type}, ${data.qty} шт.`);
+        setOpMessage(`Движение добавлено: ${moveTypeLabel(data.action_type)}, ${data.qty} шт.`);
         await refreshAll();
         moveForm.reset();
     });
