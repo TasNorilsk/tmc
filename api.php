@@ -6,6 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 require __DIR__ . '/config.php';
 
+/** @var mysqli $conn */
 $conn->set_charset('utf8mb4');
 
 function respond($data, $code = 200) {
@@ -15,7 +16,7 @@ function respond($data, $code = 200) {
 }
 
 function post($key, $default = null) {
-    return isset($_POST[$key]) ? $_POST[$key] : $default;
+    return $_POST[$key] ?? $default;
 }
 
 function ensure_dir($dir): void
