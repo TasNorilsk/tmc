@@ -167,9 +167,54 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('online', updateNetIndicator);
     window.addEventListener('offline', updateNetIndicator);
 
-    forceRefreshBtn.addEventListener('click', async () => {
-        await refreshAll(true);
-    });
+    async function forceUpdateApp() {
+        // 1) try to обновить сервис-воркер и принудительно сбросить его кэши
+        if ('serviceWorker' in navigator) {
+            try {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (reg) {
+                    // pull fresh sw.js
+                    await reg.update();
+
+                    // if there is a waiting worker — activate it
+                    if (reg.waiting) {
+                        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
+                }
+
+                // wait for active controller
+                await navigator.serviceWorker.ready;
+                const sw = navigator.serviceWorker.controller;
+                if (sw) {
+                    const res = await new Promise((resolve, reject) => {
+                        const ch = new MessageChannel();
+                        const t = setTimeout(() => reject(new Error('timeout')), 8000);
+                        ch.port1.onmessage = (e) => {
+                            clearTimeout(t);
+                            resolve(e.data);
+                        };
+                        sw.postMessage({ type: 'CLEAR_CACHES' }, [ch.port2]);
+                    });
+                    if (res && res.ok) {
+                        setOpMessage('Кэш обновлён. Перезагрузка…');
+                        // cache-bust URL to avoid Safari HTTP cache
+                        const url = new URL(location.href);
+                        url.searchParams.set('r', Date.now().toString());
+                        location.href = url.toString();
+                        return;
+                    }
+                }
+            } catch (e) {
+                // fall back to обычному обновлению данных
+            }
+        }
+
+        // 2) fallback: просто обновить данные
+        await refreshAll(false);
+        setOpMessage('Данные обновлены.');
+    }
+
+    forceRefreshBtn.addEventListener('click', forceUpdateApp);
 
     // ===== Suggestions =====
     function hideHints() {
@@ -1359,5 +1404,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js');
+
+        // if a new SW is waiting — activate it ASAP
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            // no full reload here; кнопка "Обновить" сделает жёсткое обновление при необходимости
+        });
     }
 });
