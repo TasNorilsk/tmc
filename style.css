@@ -265,3 +265,32 @@
 
 /* Movements: manufacturer column */
 .col-move-manu{ width: 240px; }
+
+/* ===== категории: сворачивание + сортировка ===== */
+.tmc-cat-title{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.tmc-cat-title__name{
+    font-weight: 600;
+}
+.tmc-cat-toggle{
+    width: 34px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+.tmc-cat-sort{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 0 10px;
+}
+.tmc-cat-body--collapsed{
+    display: none;
+}

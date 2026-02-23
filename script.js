@@ -313,6 +313,120 @@ document.addEventListener('DOMContentLoaded', () => {
         return map;
     }
 
+    // ===== Category UI state (collapse + per-category sort) =====
+    const LS_CAT_COLLAPSE_PREFIX = 'tmc_cat_collapsed:';
+    const LS_CAT_SORT_PREFIX = 'tmc_cat_sort:';
+    const DEFAULT_SORT_CHAIN = ['name', 'tth1', 'tth2', 'qty', 'manufacturer'];
+
+    function getCategoryId(catItems) {
+        const first = (catItems && catItems[0]) ? catItems[0] : null;
+        const id = first && first.category_id != null ? String(first.category_id) : '0';
+        return id;
+    }
+
+    function lsGetJson(key, fallback) {
+        try {
+            const v = localStorage.getItem(key);
+            if (!v) return fallback;
+            return JSON.parse(v);
+        } catch {
+            return fallback;
+        }
+    }
+
+    function lsSetJson(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch { /* noop */ }
+    }
+
+    function isCatCollapsed(catId) {
+        return localStorage.getItem(LS_CAT_COLLAPSE_PREFIX + catId) === '1';
+    }
+
+    function setCatCollapsed(catId, collapsed) {
+        try {
+            localStorage.setItem(LS_CAT_COLLAPSE_PREFIX + catId, collapsed ? '1' : '0');
+        } catch { /* noop */ }
+    }
+
+    function getCatSort(catId) {
+        const s = lsGetJson(LS_CAT_SORT_PREFIX + catId, null);
+        if (!s || !s.field) {
+            return { field: 'name', dir: 'asc' };
+        }
+        const field = String(s.field);
+        const dir = (s.dir === 'desc') ? 'desc' : 'asc';
+        if (!DEFAULT_SORT_CHAIN.includes(field)) return { field: 'name', dir: 'asc' };
+        return { field, dir };
+    }
+
+    function setCatSort(catId, field, dir) {
+        lsSetJson(LS_CAT_SORT_PREFIX + catId, { field, dir });
+    }
+
+    function normStr(v) {
+        return (v ?? '').toString().trim().toLowerCase();
+    }
+
+    function cmpStr(a, b) {
+        return a.localeCompare(b, 'ru', { sensitivity: 'base', numeric: true });
+    }
+
+    function getFieldValue(item, field) {
+        if (field === 'manufacturer') return normStr(item.manufacturer_name);
+        if (field === 'qty') return parseFloat(item.qty ?? 0) || 0;
+        return normStr(item[field]);
+    }
+
+    function compareByField(field, dir) {
+        const m = (dir === 'desc') ? -1 : 1;
+        return (a, b) => {
+            const va = getFieldValue(a, field);
+            const vb = getFieldValue(b, field);
+            if (field === 'qty') {
+                if (va < vb) return -1 * m;
+                if (va > vb) return 1 * m;
+                return 0;
+            }
+            const r = cmpStr(va, vb);
+            return r * m;
+        };
+    }
+
+    function sortCategoryItems(catItems, catId) {
+        const { field, dir } = getCatSort(catId);
+        const chain = [field, ...DEFAULT_SORT_CHAIN.filter(f => f !== field)];
+        const sorted = [...catItems];
+        sorted.sort((a, b) => {
+            for (const f of chain) {
+                const d = (f === field) ? dir : 'asc';
+                const r = compareByField(f, d)(a, b);
+                if (r !== 0) return r;
+            }
+            return (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0);
+        });
+        return sorted;
+    }
+
+    function renderSortButtons(catId, activeField, activeDir) {
+        const mkBtn = (field, label) => {
+            const isActive = field === activeField;
+            const dirMark = isActive ? (activeDir === 'asc' ? '▲' : '▼') : '';
+            const cls = isActive ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary';
+            return `<button type="button" class="${cls} tmc-sort-btn" data-cat-id="${esc(catId)}" data-field="${field}">${label} ${dirMark}</button>`;
+        };
+        return `
+      <div class="tmc-cat-sort">
+        ${mkBtn('name', 'Название')}
+        ${mkBtn('tth1', 'ТТХ1')}
+        ${mkBtn('tth2', 'ТТХ2')}
+        ${mkBtn('qty', 'Кол-во')}
+        ${mkBtn('manufacturer', 'Произв.')}
+      </div>
+    `;
+    }
+
     function renderItemsGrouped(items) {
         const term = (search.value || '').toLowerCase().trim();
         const grouped = groupByCategory(items);
@@ -320,20 +434,39 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsList.innerHTML = '';
 
         for (const [catName, catItems] of grouped.entries()) {
+            const catId = getCategoryId(catItems);
+            const collapsed = isCatCollapsed(catId);
+            const sortState = getCatSort(catId);
+            const sortedItems = sortCategoryItems(catItems, catId);
+
             const section = document.createElement('section');
             section.className = 'tmc-cat';
 
+            section.dataset.catId = catId;
+
             const h = document.createElement('div');
             h.className = 'tmc-cat-title';
-            h.textContent = catName;
+            h.innerHTML = `
+        <div class="tmc-cat-title__name">${esc(catName)}</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary tmc-cat-toggle" data-cat-id="${esc(catId)}" title="Свернуть/развернуть">
+          ${collapsed ? '+' : '−'}
+        </button>
+      `;
             section.appendChild(h);
+
+            const sortRow = document.createElement('div');
+            sortRow.innerHTML = renderSortButtons(catId, sortState.field, sortState.dir);
+            const sortEl = sortRow.firstElementChild;
+            if (collapsed) sortEl.classList.add('d-none');
+            section.appendChild(sortEl);
 
             const body = document.createElement('div');
             body.className = 'tmc-cat-body';
+            if (collapsed) body.classList.add('tmc-cat-body--collapsed');
 
             let visibleCount = 0;
 
-            for (const item of catItems) {
+            for (const item of sortedItems) {
                 const hay = `${item.manufacturer_name ?? ''} ${item.name ?? ''} ${item.tth1 ?? ''} ${item.tth2 ?? ''}`.toLowerCase();
                 const match = !term || hay.includes(term);
 
@@ -382,6 +515,37 @@ document.addEventListener('DOMContentLoaded', () => {
             itemsList.appendChild(section);
         }
     }
+
+    // Category collapse + per-category sort handlers (event delegation)
+    itemsList.addEventListener('click', (e) => {
+        const toggle = e.target.closest('.tmc-cat-toggle');
+        if (toggle) {
+            const catId = toggle.dataset.catId;
+            if (!catId) return;
+            const section = itemsList.querySelector(`section.tmc-cat[data-cat-id="${CSS.escape(catId)}"]`);
+            if (!section) return;
+            const body = section.querySelector('.tmc-cat-body');
+            const sortEl = section.querySelector('.tmc-cat-sort');
+            const nowCollapsed = !body.classList.contains('tmc-cat-body--collapsed');
+            body.classList.toggle('tmc-cat-body--collapsed', nowCollapsed);
+            if (sortEl) sortEl.classList.toggle('d-none', nowCollapsed);
+            toggle.textContent = nowCollapsed ? '+' : '−';
+            setCatCollapsed(catId, nowCollapsed);
+            return;
+        }
+
+        const sortBtn = e.target.closest('.tmc-sort-btn');
+        if (sortBtn) {
+            const catId = sortBtn.dataset.catId;
+            const field = sortBtn.dataset.field;
+            if (!catId || !field) return;
+            const prev = getCatSort(catId);
+            let dir = 'asc';
+            if (prev.field === field) dir = (prev.dir === 'asc') ? 'desc' : 'asc';
+            setCatSort(catId, field, dir);
+            renderItemsGrouped(itemsCache);
+        }
+    });
 
     // ===== Modal helpers =====
     function fillCategories(categories) {
